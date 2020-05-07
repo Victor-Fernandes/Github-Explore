@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouteMatch, Link } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import api from '../../services/api';
@@ -9,12 +9,56 @@ import logo from '../../assets/logogithub.svg';
 interface RepositoryParams {
   repository: string;
 }
+
+interface Repository {
+  full_name: string;
+  description: string;
+  stargazers_count: number;
+  forks_count: number;
+  open_issues_count: number;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+interface Issue {
+  id: number;
+  title: string;
+  html_url: string;
+  user: {
+    login: string;
+  };
+}
+
 // esse formato permite a tipagem de um componente de forma mais facil
 const Repository: React.FC = () => {
+  const [repository, setRepository] = useState<Repository | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
+
   const { params } = useRouteMatch<RepositoryParams>();
 
   useEffect(() => {
-    api.get(`/repos/${params.repository}`).then((response) => {});
+    api.get(`/repos/${params.repository}`).then((response) => {
+      setRepository(response.data);
+    });
+  }, [params.repository]);
+
+  useEffect(() => {
+    api.get(`/repos/${params.repository}/issues`).then((response) => {
+      setIssues(response.data);
+    });
+    // async function loadData(): Promise<void> { //usando Promises
+    //   const [repository, issues] = await Promise.all([
+    //     api.get(`/repos/${params.repository}`),
+    //     api.get(`/repos/${params.repository}/issues`),
+    //   ]);
+
+    //   console.log(repository);
+    //   console.log(issues);
+    // }
+
+    // loadData();
   }, [params.repository]);
 
   return (
@@ -27,41 +71,45 @@ const Repository: React.FC = () => {
         </Link>
       </Header>
 
-      <RepositoryInfo>
-        <header>
-          <img
-            src="https://avatars0.githubusercontent.com/u/28929274?v=4"
-            alt="rocket"
-          />
-          <div>
-            <strong>rokect/unform</strong>
-            <p>descrição do repo</p>
-          </div>
-        </header>
-        <ul>
-          <li>
-            <strong>1808</strong>
-            <span>stars</span>
-          </li>
-          <li>
-            <strong>48</strong>
-            <span>forks</span>
-          </li>
-          <li>
-            <strong>67</strong>
-            <span>issues abertas</span>
-          </li>
-        </ul>
-      </RepositoryInfo>
+      {repository && ( // condicional
+        <RepositoryInfo>
+          <header>
+            <img
+              src={repository.owner.avatar_url}
+              alt={repository.owner.login}
+            />
+            <div>
+              <strong>{repository.full_name}</strong>
+              <p>{repository.description}</p>
+            </div>
+          </header>
+          <ul>
+            <li>
+              <strong>{repository.stargazers_count}</strong>
+              <span>stars</span>
+            </li>
+            <li>
+              <strong>{repository.forks_count}</strong>
+              <span>forks</span>
+            </li>
+            <li>
+              <strong>{repository.open_issues_count}</strong>
+              <span>issues abertas</span>
+            </li>
+          </ul>
+        </RepositoryInfo>
+      )}
       <Issues>
-        <Link to="kkk">
-          <div>
-            <strong>qalqercoisa</strong>
-            <p>repository.description</p>
-          </div>
+        {issues.map((issue) => (
+          <a key={issue.id} href={issue.html_url}>
+            <div>
+              <strong>{issue.title}</strong>
+              <p>{issue.user.login}</p>
+            </div>
 
-          <FiChevronRight size={20} />
-        </Link>
+            <FiChevronRight size={20} />
+          </a>
+        ))}
       </Issues>
     </>
   );
